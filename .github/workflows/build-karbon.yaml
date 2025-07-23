@@ -24,6 +24,7 @@ jobs:
           - os: macos-latest
             extension: .app
             pyinstaller-args: --onedir --noconsole --name Karbon
+      fail-fast: false
 
     runs-on: ${{ matrix.os }}
 
@@ -37,10 +38,16 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
+      - name: Install virtualenv
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install virtualenv
+
       - name: Create and activate virtual environment
         shell: bash
         run: |
-          python -m venv --clear venv
+          python -m virtualenv --clear venv
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             source venv/Scripts/activate
             VENV_PYTHON="venv/Scripts/python"
@@ -61,9 +68,8 @@ jobs:
             source venv/bin/activate
             VENV_PYTHON="venv/bin/python"
           fi
-          "$VENV_PYTHON" -m ensurepip --upgrade
           "$VENV_PYTHON" -m pip install --upgrade pip setuptools wheel
-          "$VENV_PYTHON" -m pip install --no-cache-dir --force-reinstall pyinstaller==6.10.0 || { echo "Failed to install PyInstaller"; exit 1; }
+          "$VENV_PYTHON" -m pip install --no-cache-dir --force-reinstall pyinstaller==5.13.2 || { echo "Failed to install PyInstaller"; exit 1; }
           "$VENV_PYTHON" -m pip install -r requirements.txt || true
 
       - name: Debug PyInstaller installation
@@ -85,8 +91,10 @@ jobs:
           "$VENV_PYTHON" -c "import sys; print('\n'.join(sys.path))"
           echo "Checking PyInstaller module:"
           "$VENV_PYTHON" -m pyinstaller --version || { echo "PyInstaller module not found"; exit 1; }
-          echo "Virtual environment site-packages:"
+          echo "Virtual environment site-packages contents:"
           ls -l $($VENV_PYTHON -c 'import site; print(site.getsitepackages()[0])')
+          echo "Checking PyInstaller module files:"
+          ls -l $($VENV_PYTHON -c 'import site; print(site.getsitepackages()[0])')/PyInstaller || true
 
       - name: Build executable with PyInstaller
         shell: bash
