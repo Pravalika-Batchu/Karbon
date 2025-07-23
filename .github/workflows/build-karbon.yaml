@@ -52,38 +52,47 @@ jobs:
         run: |
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             source venv/Scripts/activate
+            VENV_PYTHON="venv/Scripts/python"
           else
             source venv/bin/activate
+            VENV_PYTHON="venv/bin/python"
           fi
-          python -m ensurepip --upgrade
-          python -m pip install --upgrade pip setuptools wheel
-          python -m pip install --no-cache-dir pyinstaller || { echo "Failed to install PyInstaller"; exit 1; }
-          python -m pip install -r requirements.txt || true
+          "$VENV_PYTHON" -m ensurepip --upgrade
+          "$VENV_PYTHON" -m pip install --upgrade pip setuptools wheel
+          "$VENV_PYTHON" -m pip install --no-cache-dir --force-reinstall pyinstaller==6.14.2 || { echo "Failed to install PyInstaller"; exit 1; }
+          "$VENV_PYTHON" -m pip install -r requirements.txt || true
 
       - name: Debug PyInstaller installation
         shell: bash
         run: |
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             source venv/Scripts/activate
+            VENV_PYTHON="venv/Scripts/python"
           else
             source venv/bin/activate
+            VENV_PYTHON="venv/bin/python"
           fi
           echo "Python path: $(which python)"
-          python --version
+          "$VENV_PYTHON" --version
           echo "Pip path: $(which pip)"
-          pip --version
-          pip list | grep pyinstaller || echo "PyInstaller not listed in pip"
-          python -m pyinstaller --version || { echo "PyInstaller module not found"; exit 1; }
+          "$VENV_PYTHON" -m pip --version
+          "$VENV_PYTHON" -m pip list | grep pyinstaller || echo "PyInstaller not listed in pip"
+          echo "Python sys.path:"
+          "$VENV_PYTHON" -c "import sys; print('\n'.join(sys.path))"
+          echo "Checking PyInstaller module:"
+          "$VENV_PYTHON" -m pyinstaller --version || { echo "PyInstaller module not found"; exit 1; }
 
       - name: Build executable with PyInstaller
         shell: bash
         run: |
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             source venv/Scripts/activate
+            VENV_PYTHON="venv/Scripts/python"
           else
             source venv/bin/activate
+            VENV_PYTHON="venv/bin/python"
           fi
-          python -m pyinstaller ui.py ${{ matrix.pyinstaller-args }}
+          "$VENV_PYTHON" -m pyinstaller ui.py ${{ matrix.pyinstaller-args }}
 
       - name: Rename binary for upload
         shell: bash
@@ -112,4 +121,3 @@ jobs:
           files: upload/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
