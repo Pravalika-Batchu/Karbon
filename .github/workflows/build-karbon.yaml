@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - feature/cross-platform-upload
+      - fix/cross-platform-upload
   workflow_dispatch:  # Manual trigger
 
 permissions:
