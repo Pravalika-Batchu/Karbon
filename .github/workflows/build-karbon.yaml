@@ -42,9 +42,22 @@ jobs:
       - name: Install dependencies
         shell: bash
         run: |
+          unset PYTHONPATH PYTHONHOME
           python3 -m pip install --upgrade pip setuptools wheel
-          python3 -m pip install --no-cache-dir pyinstaller==5.13.2 pyinstaller-hooks-contrib==2024.8
-          python3 -m pip install -r requirements.txt || true
+          python3 -m pip install --no-cache-dir --force-reinstall pyinstaller==5.7.0 pyinstaller-hooks-contrib==2023.10
+          if [[ "${{ matrix.os }}" != "windows-latest" ]]; then
+            python3 -m pip install --no-cache-dir --no-deps pywebview Pillow || true
+          else
+            python3 -m pip install -r requirements.txt || true
+          fi
+
+      - name: Fix PyInstaller case-sensitivity
+        shell: bash
+        run: |
+          SITE_PACKAGES=$(python3 -c 'import site; print(site.getsitepackages()[0])')
+          if [ -d "$SITE_PACKAGES/PyInstaller" ] && [ ! -e "$SITE_PACKAGES/pyinstaller" ]; then
+            ln -s "$SITE_PACKAGES/PyInstaller" "$SITE_PACKAGES/pyinstaller" || true
+          fi
 
       - name: Debug PyInstaller installation
         shell: bash
@@ -56,12 +69,16 @@ jobs:
           python3 -m pip list | grep pyinstaller || echo "PyInstaller not listed in pip"
           echo "Python sys.path:"
           python3 -c "import sys; print('\n'.join(sys.path))"
-          echo "Checking PyInstaller module:"
-          python3 -m pyinstaller --version || { echo "PyInstaller module not found"; exit 1; }
           echo "Site-packages contents:"
           ls -l $(python3 -c 'import site; print(site.getsitepackages()[0])')
           echo "Checking PyInstaller module files:"
-          ls -l $(python3 -c 'import site; print(site.getsitepackages()[0])')/PyInstaller || true
+          ls -l $(python3 -c 'import site; print(site.getsitepackages()[0])')/{PyInstaller,pyinstaller} || true
+          echo "Checking PyInstaller import (PyInstaller):"
+          python3 -c "import PyInstaller; print(PyInstaller.__version__)" || { echo "Failed to import PyInstaller"; exit 1; }
+          echo "Checking PyInstaller import (pyinstaller):"
+          python3 -c "import pyinstaller; print(pyinstaller.__version__)" || { echo "Failed to import pyinstaller"; exit 1; }
+          echo "Checking PyInstaller module:"
+          python3 -m pyinstaller --version || { echo "PyInstaller module not found"; exit 1; }
 
       - name: Build executable with PyInstaller
         shell: bash
