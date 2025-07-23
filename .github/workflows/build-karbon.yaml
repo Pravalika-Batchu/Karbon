@@ -23,7 +23,7 @@ jobs:
             pyinstaller-args: --onefile --noconsole --name Karbon
           - os: macos-latest
             extension: .app
-            pyinstaller-args: --onefile --noconsole --name Karbon
+            pyinstaller-args: --onedir --noconsole --name Karbon
 
     runs-on: ${{ matrix.os }}
 
@@ -57,7 +57,7 @@ jobs:
           fi
           python -m ensurepip --upgrade
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install --no-cache-dir pyinstaller
+          python -m pip install --no-cache-dir pyinstaller || { echo "Failed to install PyInstaller"; exit 1; }
           python -m pip install -r requirements.txt || true
 
       - name: Debug PyInstaller installation
@@ -68,10 +68,12 @@ jobs:
           else
             source venv/bin/activate
           fi
+          echo "Python path: $(which python)"
           python --version
+          echo "Pip path: $(which pip)"
           pip --version
           pip list | grep pyinstaller || echo "PyInstaller not listed in pip"
-          python -m pyinstaller --version || echo "PyInstaller module not found"
+          python -m pyinstaller --version || { echo "PyInstaller module not found"; exit 1; }
 
       - name: Build executable with PyInstaller
         shell: bash
@@ -110,3 +112,4 @@ jobs:
           files: upload/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
