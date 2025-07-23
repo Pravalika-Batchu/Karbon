@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - fix/cross-platform-upload  # Added to trigger on this branch
 
 permissions:
   contents: write
@@ -35,8 +36,19 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Create and activate virtual environment
+        run: |
+          python -m venv venv
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            source venv/Scripts/activate
+          else
+            source venv/bin/activate
+          fi
+          echo "PATH=$PATH" >> $GITHUB_ENV
+
       - name: Install dependencies
         run: |
+          source venv/bin/activate || venv\Scripts\activate
           python -m ensurepip --upgrade
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install --no-cache-dir pyinstaller
@@ -44,13 +56,16 @@ jobs:
 
       - name: Debug PyInstaller installation
         run: |
+          source venv/bin/activate || venv\Scripts\activate
           python --version
           pip --version
           pip list | grep pyinstaller || echo "PyInstaller not listed in pip"
           python -m pyinstaller --version || echo "PyInstaller module not found"
 
       - name: Build executable with PyInstaller
-        run: python -m pyinstaller ui.py ${{ matrix.pyinstaller-args }}
+        run: |
+          source venv/bin/activate || venv\Scripts\activate
+          python -m pyinstaller ui.py ${{ matrix.pyinstaller-args }}
 
       - name: Rename binary for upload
         shell: bash
